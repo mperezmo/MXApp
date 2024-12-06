@@ -1,0 +1,9 @@
+C:\Users\marti\Source\Repos\MXApp\Services\obj\Debug\Services.csproj.AssemblyReference.cache
+C:\Users\marti\Source\Repos\MXApp\Services\obj\Debug\Services.csproj.CoreCompileInputs.cache
+C:\Users\marti\Source\Repos\MXApp\Services\bin\Debug\Services.dll
+C:\Users\marti\Source\Repos\MXApp\Services\bin\Debug\Services.pdb
+C:\Users\marti\Source\Repos\MXApp\Services\bin\Debug\Domain.dll
+C:\Users\marti\Source\Repos\MXApp\Services\bin\Debug\Domain.pdb
+C:\Users\marti\Source\Repos\MXApp\Services\obj\Debug\Services.csproj.CopyComplete
+C:\Users\marti\Source\Repos\MXApp\Services\obj\Debug\Services.dll
+C:\Users\marti\Source\Repos\MXApp\Services\obj\Debug\Services.pdb
