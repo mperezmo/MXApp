@@ -18,8 +18,8 @@ namespace BLL
             if (string.IsNullOrEmpty(instanceName))
                 throw new ArgumentException("El nombre de la instancia no puede estar vacío.");
 
-            // Ahora GetDatabaseInfo devuelve una lista
-            return DatabaseDAL.GetDatabaseInfo(instanceName, connectionStrategy);
+            // Obtener las bases de datos incluyendo todos los detalles
+            return DatabaseDAL.GetDatabases(instanceName, connectionStrategy, includeStatus: true, includeSize: true, includeBackups: true);
         }
     }
 }
