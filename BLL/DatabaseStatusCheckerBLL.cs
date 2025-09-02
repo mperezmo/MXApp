@@ -55,7 +55,7 @@ namespace BLL
                 {
                     // Para cada instancia, obtenemos la lista de bases de datos usando DatabaseBLL
                     DatabaseBLL dbBLL = new DatabaseBLL(instance.Name, connectionStrategy);
-                    var databases = dbBLL.GetDatabasesStatus();
+                    var databases = dbBLL.GetDatabases(includeStatus: true);
 
                     // Buscar bases de datos en estado OFFLINE
                     var offlineDatabases = databases
