@@ -107,23 +107,14 @@ namespace BLL
         /// <summary>
         /// Recupera la lista de bases de datos en la instancia.
         /// </summary>
-        public List<DatabaseInfo> GetDatabases()
+                /// <param name="includeStatus">Indica si se incluye el estado y modelo de recuperación.</param>
+        /// <param name="includeSize">Indica si se incluye información de tamaño y archivos.</param>
+        /// <param name="includeBackups">Indica si se incluye información de backups.</param>
+        public List<DatabaseInfo> GetDatabases(bool includeStatus = false, bool includeSize = false, bool includeBackups = false)
         {
             try
             {
-                return DatabaseDAL.GetDatabasesInfo(_instanceName, _connectionStrategy);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error al obtener la lista de bases de datos: {ex.Message}", ex);
-            }
-        }
-
-        public List<DatabaseInfo> GetDatabasesStatus()
-        {
-            try
-            {
-                return DatabaseDAL.GetDatabaseInfo(_instanceName, _connectionStrategy);
+                return DatabaseDAL.GetDatabases(_instanceName, _connectionStrategy, includeStatus, includeSize, includeBackups);
             }
             catch (Exception ex)
             {
