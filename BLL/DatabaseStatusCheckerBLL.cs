@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
@@ -8,6 +8,7 @@ using System.Timers;
 using DAL.Contracts;
 using DAL.Implementations.SQLServer;
 using Services.Facade;
+using Domain;
 
 namespace BLL
 {
@@ -33,7 +34,7 @@ namespace BLL
             try
             {
                 CheckDatabaseStatuses();
-            }
+@@ -37,56 +38,55 @@ namespace BLL
             catch (Exception ex)
             {
                 LoggerService.WriteException(ex);
@@ -55,12 +56,11 @@ namespace BLL
                 {
                     // Para cada instancia, obtenemos la lista de bases de datos usando DatabaseBLL
                     DatabaseBLL dbBLL = new DatabaseBLL(instance.Name, connectionStrategy);
-                    var databases = dbBLL.GetDatabases(includeStatus: true);
+                    var databases = dbBLL.GetDatabasesStatus();
 
                     // Buscar bases de datos en estado OFFLINE
                     var offlineDatabases = databases
-                        .Where(db => !string.IsNullOrEmpty(db.DatabaseStatus) &&
-                                     db.DatabaseStatus.ToLower().Contains("offline"))
+                        .Where(db => db.State == DatabaseState.Offline)
                         .ToList();
 
                     if (offlineDatabases.Any())
