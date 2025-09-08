@@ -14,27 +14,32 @@ namespace DAL.Implementations.SQLServer
         /// </summary>
         public static void CrearBaseDeDatos(string databaseName, string dataPath, string logPath, string recoveryModel, IDatabaseConnectionStrategy connectionStrategy, string instanceName)
         {
-            string createDbCommand = $@"
-CREATE DATABASE [{databaseName}]
+            string commandText = string.Format(@"CREATE DATABASE [{0}]
 ON PRIMARY
 (
-    NAME = '{databaseName}_Data',
-    FILENAME = '{dataPath}\\{databaseName}_Data.mdf',
+    NAME = @DataName,
+    FILENAME = @DataPath,
     SIZE = 10MB,
     MAXSIZE = 100MB,
     FILEGROWTH = 10MB
 )
 LOG ON
 (
-    NAME = '{databaseName}_Log',
-    FILENAME = '{logPath}\\{databaseName}_Log.ldf',
+    NAME = @LogName,
+    FILENAME = @LogPath,
     SIZE = 5MB,
     MAXSIZE = 50MB,
     FILEGROWTH = 5MB
 );
-ALTER DATABASE [{databaseName}] SET RECOVERY {recoveryModel.ToUpper()};";
+ALTER DATABASE [{0}] SET RECOVERY {1};", databaseName, recoveryModel.ToUpper());
 
-            ExecuteCommand(createDbCommand, connectionStrategy, instanceName);
+            var command = new SqlCommand(commandText);
+            command.Parameters.AddWithValue("@DataName", databaseName + "_Data");
+            command.Parameters.AddWithValue("@DataPath", dataPath + "\\" + databaseName + "_Data.mdf");
+            command.Parameters.AddWithValue("@LogName", databaseName + "_Log");
+            command.Parameters.AddWithValue("@LogPath", logPath + "\\" + databaseName + "_Log.ldf");
+
+            ExecuteCommand(command, connectionStrategy, instanceName);
         }
 
         /// <summary>
@@ -42,12 +47,12 @@ ALTER DATABASE [{databaseName}] SET RECOVERY {recoveryModel.ToUpper()};";
         /// </summary>
         public static void EliminarBaseDeDatos(string databaseName, IDatabaseConnectionStrategy connectionStrategy, string instanceName)
         {
-            string deleteDbCommand = $@"
-USE [master];
-ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-DROP DATABASE [{databaseName}];";
+            string commandText = string.Format(@"USE [master];
+ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+DROP DATABASE [{0}];", databaseName);
 
-            ExecuteCommand(deleteDbCommand, connectionStrategy, instanceName);
+            var command = new SqlCommand(commandText);
+            ExecuteCommand(command, connectionStrategy, instanceName);
         }
 
         /// <summary>
@@ -71,107 +76,48 @@ DROP DATABASE [{databaseName}];";
                     throw new ArgumentException("Tipo de backup no válido. Use 'FULL', 'TLOG' o 'DIFERENCIAL'.");
             }
 
-            string backupCommand = $@"
-BACKUP {backupClause} [{databaseName}]
-TO DISK = '{backupPath}\\{databaseName}_{backupType}_{DateTime.Now:yyyyMMddHHmmss}.bak'
-WITH INIT;";
+            string commandText = string.Format("BACKUP {0} [{1}] TO DISK = @BackupPath WITH INIT;", backupClause, databaseName);
+            var command = new SqlCommand(commandText);
+            string fileName = backupPath + "\\" + databaseName + "_" + backupType + "_" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".bak";
+            command.Parameters.AddWithValue("@BackupPath", fileName);
 
-            ExecuteCommand(backupCommand, connectionStrategy, instanceName);
+            ExecuteCommand(command, connectionStrategy, instanceName);
         }
 
         /// <summary>
         /// Recupera la lista de bases de datos (excluyendo las del sistema) de la instancia.
         /// </summary>
-        public static List<DatabaseInfo> GetDatabases(
-            string instanceName,
-            IDatabaseConnectionStrategy connectionStrategy,
-            bool includeStatus = false,
-            bool includeSize = false,
-            bool includeBackups = false)
+        public static List<DatabaseInfo> GetDatabasesInfo(string instanceName, IDatabaseConnectionStrategy connectionStrategy)
         {
             var connectionContext = new DatabaseConnectionContext(connectionStrategy);
-            var databases = new List<DatabaseInfo>();
-            
+
             using (var connection = connectionContext.GetConnection(instanceName))
             {
                 try
                 {
-                    bool includeDetails = includeStatus || includeSize || includeBackups;
-                    string query;
-
-                    if (includeDetails)
-                    {
-                        query = @"
-                SELECT
-                    db.name AS DatabaseName,
-                    db.state_desc AS Status,
-                    db.recovery_model_desc AS RecoveryModel,
-                    SUM(mf.size * 8 / 1024) AS SizeMB,
-                    mf.name AS FileName,
-                    mf.physical_name AS FileLocation,
-                    (SELECT MAX(backup_finish_date)
-                     FROM msdb.dbo.backupset
-                     WHERE backupset.database_name = db.name AND backupset.type = 'D') AS LastFullBackup,
-                    (SELECT MAX(backup_finish_date)
-                     FROM msdb.dbo.backupset
-                     WHERE backupset.database_name = db.name AND backupset.type = 'L') AS LastLogBackup
-                FROM
-                    sys.databases db
-                LEFT JOIN
-                    sys.master_files mf ON db.database_id = mf.database_id
-                WHERE db.database_id > 4
-                GROUP BY
-                    db.name, db.state_desc, db.recovery_model_desc, mf.name, mf.physical_name
-                ORDER BY
-                    db.name;";
-                    }
-                    else
-                    {
-                        query = @"
-                SELECT
-                    name AS DatabaseName
-                FROM sys.databases
-                WHERE database_id > 4;";
-                    }
-
                     connection.Open();
+
+                    string query = @"
+SELECT 
+    name AS DatabaseName
+FROM sys.databases
+WHERE database_id > 4;"; // Excluye bases de datos del sistema
 
                     using (var command = new SqlCommand(query, connection))
                     using (var reader = command.ExecuteReader())
                     {
-                       
+                        var databases = new List<DatabaseInfo>();
+
                         while (reader.Read())
                         {
-                            var info = new DatabaseInfo
+                            databases.Add(new DatabaseInfo
                             {
                                 DatabaseName = reader["DatabaseName"].ToString()
-                                };
-
-                            if (includeDetails)
-                            {
-                                if (includeStatus)
-                                {
-                                    info.DatabaseStatus = reader["Status"].ToString();
-                                    info.RecoveryModel = reader["RecoveryModel"].ToString();
-                                }
-
-                                if (includeSize)
-                                {
-                                    info.SizeMB = Convert.ToDecimal(reader["SizeMB"]);
-                                    info.FileName = reader["FileName"].ToString();
-                                    info.FileLocation = reader["FileLocation"].ToString();
-                                }
-
-                                if (includeBackups)
-                                {
-                                    info.LastFullBackup = reader["LastFullBackup"] != DBNull.Value ? reader["LastFullBackup"].ToString() : null;
-                                    info.LastLogBackup = reader["LastLogBackup"] != DBNull.Value ? reader["LastLogBackup"].ToString() : null;
-                                }
-                            }
-                        databases.Add(info);
+                            });
                         }
+
+                        return databases;
                     }
-                    return databases;
                 }
                 catch (Exception ex)
                 {
@@ -185,17 +131,18 @@ WITH INIT;";
         /// </summary>
         public static void ShrinkDatabase(string instanceName, IDatabaseConnectionStrategy connectionStrategy, string databaseName, string databaseFile, int shrinkInt)
         {
-            string shrinkCommand = $@"
-USE [{databaseName}];
-DBCC SHRINKFILE (N'{databaseFile}', {shrinkInt}, TRUNCATEONLY);";
+            string commandText = string.Format("USE [{0}]; DBCC SHRINKFILE (@DatabaseFile, @ShrinkInt, TRUNCATEONLY);", databaseName);
+            var command = new SqlCommand(commandText);
+            command.Parameters.AddWithValue("@DatabaseFile", databaseFile);
+            command.Parameters.AddWithValue("@ShrinkInt", shrinkInt);
 
-            ExecuteCommand(shrinkCommand, connectionStrategy, instanceName);
+            ExecuteCommand(command, connectionStrategy, instanceName);
         }
 
         /// <summary>
         /// Método genérico que abre la conexión, ejecuta el comando SQL y lo cierra.
         /// </summary>
-        public static void ExecuteCommand(string commandText, IDatabaseConnectionStrategy connectionStrategy, string instanceName)
+        public static void ExecuteCommand(SqlCommand command, IDatabaseConnectionStrategy connectionStrategy, string instanceName)
         {
             var connectionContext = new DatabaseConnectionContext(connectionStrategy);
 
@@ -204,46 +151,38 @@ DBCC SHRINKFILE (N'{databaseFile}', {shrinkInt}, TRUNCATEONLY);";
                 try
                 {
                     connection.Open();
-                    using (SqlCommand command = new SqlCommand(commandText, connection))
-                    {
-                        command.ExecuteNonQuery();
-                    }
+                    command.Connection = connection;
+                    command.ExecuteNonQuery();
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception($"Error al ejecutar el comando SQL: {ex.Message}", ex);
+                    throw new Exception("Error al ejecutar el comando SQL: " + ex.Message, ex);
                 }
             }
         }
 
-        /// <summary>
-        /// Obtiene la lista de nombres de archivos de la base de datos, filtrando por tipo (Data o Log).
-        /// </summary>
-        /// <param name="instanceName">Nombre de la instancia.</param>
-        /// <param name="connectionStrategy">Estrategia de conexión.</param>
-        /// <param name="databaseName">Nombre de la base de datos.</param>
-        /// <param name="fileType">Tipo de archivo: "Data" o "Log".</param>
-        /// <returns>Lista de nombres de archivos.</returns>
-        public static List<string> GetDatabaseFiles(string instanceName, IDatabaseConnectionStrategy connectionStrategy, string databaseName, string fileType)
+        public static List<DatabaseInfo> GetDatabaseInfo(string instanceName, DAL.Contracts.IDatabaseConnectionStrategy connectionStrategy)
         {
-            var fileList = new List<string>();
             var connectionContext = new DatabaseConnectionContext(connectionStrategy);
+            List<DatabaseInfo> databaseList = new List<DatabaseInfo>();
 
-            using (var connection = connectionContext.GetConnection(instanceName))
+            using (SqlConnection connection = connectionContext.GetConnection(instanceName))
             {
                 try
                 {
-                    connection.Open();
-
-                    // La columna type_desc de sys.master_files contiene "ROWS" para archivos de datos y "LOG" para archivos de log.
-                    string fileTypeDesc = fileType.Equals("Data", StringComparison.OrdinalIgnoreCase) ? "ROWS" : "LOG";
-
                     string query = @"
-                        SELECT mf.name AS FileName
-                        FROM sys.master_files mf
-                        WHERE mf.database_id = DB_ID(@databaseName)
-                          AND mf.type_desc = @fileTypeDesc;";
-
+                SELECT 
+                    db.name AS DatabaseName,
+                    db.state_desc AS Status,
+                    db.recovery_model_desc AS RecoveryModel,
+                    SUM(mf.size * 8 / 1024) AS SizeMB,
+                    mf.name AS FileName,
+                    mf.physical_name AS FileLocation,
+                    (SELECT MAX(backup_finish_date) 
+                     FROM msdb.dbo.backupset 
+                     WHERE backupset.database_name = db.name AND backupset.type = 'D') AS LastFullBackup,
+                    (SELECT MAX(backup_finish_date) 
+@@ -257,32 +261,32 @@ DBCC SHRINKFILE (N'{databaseFile}', {shrinkInt}, TRUNCATEONLY);";
                     using (var command = new SqlCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("@databaseName", databaseName);
@@ -269,9 +208,9 @@ DBCC SHRINKFILE (N'{databaseFile}', {shrinkInt}, TRUNCATEONLY);";
 
         public static void ToggleDatabaseState(string instanceName, IDatabaseConnectionStrategy connectionStrategy, string databaseName, string targetState)
         {
-            // targetState debe ser "ONLINE" o "OFFLINE"
-            string commandText = $"ALTER DATABASE [{databaseName}] SET {targetState};";
-            ExecuteCommand(commandText, connectionStrategy, instanceName);
+            string commandText = string.Format("ALTER DATABASE [{0}] SET {1};", databaseName, targetState);
+            var command = new SqlCommand(commandText);
+            ExecuteCommand(command, connectionStrategy, instanceName);
         }
 
     }
