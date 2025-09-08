@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,6 +24,7 @@ namespace Services.Domain
         {
 
             throw new Exception("No se puede agregar un elemento");
+            throw new NotSupportedException("No se puede agregar un elemento");
 
         }
 
@@ -33,12 +34,14 @@ namespace Services.Domain
         {
 
             throw new Exception("No se puede quitar un elemento");
+            throw new NotSupportedException("No se puede quitar un elemento");
 
         }
 
         public override int GetCount()
         {
             return 0;
+            return 1;
         }
     }//end Leaf
 
