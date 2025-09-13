@@ -39,7 +39,7 @@ namespace Services.DAL.Implementations.SQLServer
         }
         public void SaveFamilia(Familia familia)
         {
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "INSERT INTO Familia (IdFamilia, Nombre) VALUES (@IdFamilia, @Nombre)",
                 CommandType.Text,
                 new SqlParameter("@IdFamilia", familia.Id),
@@ -48,7 +48,7 @@ namespace Services.DAL.Implementations.SQLServer
 
             foreach (var patente in familia.Accesos.OfType<Patente>())
             {
-                SqlHelper.ExecuteNonQuery(
+                SecuritySqlHelper.ExecuteNonQuery(
                     "INSERT INTO Familia_Patente (IdFamilia, IdPatente) VALUES (@IdFamilia, @IdPatente)",
                     CommandType.Text,
                     new SqlParameter("@IdFamilia", familia.Id),
@@ -60,7 +60,7 @@ namespace Services.DAL.Implementations.SQLServer
         public void UpdateFamilia(Familia familia)
         {
             // Actualizar el nombre de la familia
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "UPDATE Familia SET Nombre = @Nombre WHERE IdFamilia = @IdFamilia",
                 CommandType.Text,
                 new SqlParameter("@IdFamilia", familia.Id),
@@ -68,7 +68,7 @@ namespace Services.DAL.Implementations.SQLServer
             );
 
             // Eliminar patentes actuales de la familia en Familia_Patente
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "DELETE FROM Familia_Patente WHERE IdFamilia = @IdFamilia",
                 CommandType.Text,
                 new SqlParameter("@IdFamilia", familia.Id)
@@ -77,7 +77,7 @@ namespace Services.DAL.Implementations.SQLServer
             // Reinsertar las patentes actualizadas
             foreach (var patente in familia.Accesos.OfType<Patente>())
             {
-                SqlHelper.ExecuteNonQuery(
+                SecuritySqlHelper.ExecuteNonQuery(
                     "INSERT INTO Familia_Patente (IdFamilia, IdPatente) VALUES (@IdFamilia, @IdPatente)",
                     CommandType.Text,
                     new SqlParameter("@IdFamilia", familia.Id),
@@ -88,7 +88,7 @@ namespace Services.DAL.Implementations.SQLServer
 
         public void SaveUsuarioFamilia(Guid IdUsuario, Guid IdFamilia)
         {
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "INSERT INTO Usuario_Familia (IdUsuario, IdFamilia) VALUES (@IdUsuario, @IdFamilia)",
                 CommandType.Text,
                 new SqlParameter("@IdUsuario", IdUsuario),
@@ -99,7 +99,7 @@ namespace Services.DAL.Implementations.SQLServer
         public void UpdateUsuarioFamilia(Guid usuarioId, List<Familia> familias)
         {
             // Eliminar relaciones actuales
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "DELETE FROM Usuario_Familia WHERE IdUsuario = @IdUsuario",
                 CommandType.Text,
                 new SqlParameter("@IdUsuario", usuarioId)
@@ -115,7 +115,7 @@ namespace Services.DAL.Implementations.SQLServer
         {
             List<Familia> familias = new List<Familia>();
 
-            using (SqlDataReader reader = SqlHelper.ExecuteReader(
+            using (SqlDataReader reader = SecuritySqlHelper.ExecuteReader(
                 "SELECT IdFamilia, Nombre FROM Familia",
                 CommandType.Text))
             {
@@ -135,7 +135,7 @@ namespace Services.DAL.Implementations.SQLServer
         {
             List<Patente> patentes = new List<Patente>();
 
-            using (SqlDataReader reader = SqlHelper.ExecuteReader(
+            using (SqlDataReader reader = SecuritySqlHelper.ExecuteReader(
                 "SELECT IdPatente, Nombre, DataKey, TipoAcceso FROM Patente",
                 CommandType.Text))
             {
