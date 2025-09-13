@@ -16,7 +16,7 @@ namespace Services.DAL.Implementations.SQLServer
         {
             List<Patente> patentes = new List<Patente>();
 
-            using (SqlDataReader reader = SqlHelper.ExecuteReader(
+            using (SqlDataReader reader = SecuritySqlHelper.ExecuteReader(
                 "SELECT p.IdPatente, p.Nombre, p.DataKey, p.TipoAcceso FROM Patente p " +
                 "INNER JOIN Familia_Patente fp ON p.IdPatente = fp.IdPatente " +
                 "WHERE fp.IdFamilia = @IdFamilia",
