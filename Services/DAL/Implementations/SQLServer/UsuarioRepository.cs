@@ -25,7 +25,7 @@ namespace Services.DAL.Implementations.SQLServer
         {
             Usuario usuario = null;
 
-            using (SqlDataReader reader = SqlHelper.ExecuteReader(
+            using (SqlDataReader reader = SecuritySqlHelper.ExecuteReader(
                 "SELECT IdUsuario, UserName, Password, Estado FROM Usuario WHERE UPPER(UserName) = UPPER(@UserName)",
                 CommandType.Text,
                 new SqlParameter("@UserName", username)))
@@ -56,7 +56,7 @@ namespace Services.DAL.Implementations.SQLServer
         {
             List<Familia> familias = new List<Familia>();
 
-            using (SqlDataReader reader = SqlHelper.ExecuteReader(
+            using (SqlDataReader reader = SecuritySqlHelper.ExecuteReader(
                 "SELECT f.IdFamilia, f.Nombre FROM Familia f " +
                 "INNER JOIN Usuario_Familia uf ON f.IdFamilia = uf.IdFamilia " +
                 "WHERE uf.IdUsuario = @IdUsuario",
