@@ -84,7 +84,7 @@ namespace Services.DAL.Implementations.SQLServer
 
         public void CreateUsuario(Usuario usuario)
         {
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "INSERT INTO Usuario (IdUsuario, UserName, Password, Estado, PhoneNumber) VALUES (@IdUsuario, @UserName, @Password, @Estado, @PhoneNumber)",
                 CommandType.Text,
                 new SqlParameter("@IdUsuario", usuario.IdUsuario),
@@ -97,7 +97,7 @@ namespace Services.DAL.Implementations.SQLServer
 
         public void DisableUsuario(Guid idUsuario)
         {
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "UPDATE Usuario SET Estado = 0 WHERE IdUsuario = @IdUsuario",
                 CommandType.Text,
                 new SqlParameter("@IdUsuario", idUsuario)
@@ -106,7 +106,7 @@ namespace Services.DAL.Implementations.SQLServer
 
         public void EnabledUsuario(Guid idUsuario)
         {
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "UPDATE Usuario SET Estado = 1 WHERE IdUsuario = @IdUsuario",
                 CommandType.Text,
                 new SqlParameter("@IdUsuario", idUsuario)
@@ -116,7 +116,7 @@ namespace Services.DAL.Implementations.SQLServer
         public void UpdateAccesos(Guid idUsuario, List<Acceso> accesos)
         {
             // Primero eliminamos los accesos existentes
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "DELETE FROM Usuario_Patente WHERE IdUsuario = @IdUsuario",
                 CommandType.Text,
                 new SqlParameter("@IdUsuario", idUsuario)
@@ -125,7 +125,7 @@ namespace Services.DAL.Implementations.SQLServer
             // Luego insertamos los nuevos accesos
             foreach (var acceso in accesos)
             {
-                SqlHelper.ExecuteNonQuery(
+                SecuritySqlHelper.ExecuteNonQuery(
                     "INSERT INTO Usuario_Patente (IdUsuario, IdPatente) VALUES (@IdUsuario, @IdPatente)",
                     CommandType.Text,
                     new SqlParameter("@IdUsuario", idUsuario),
@@ -137,7 +137,7 @@ namespace Services.DAL.Implementations.SQLServer
 
         public void SetOTP(Guid idUsuario, string otp, DateTime expiry)
         {
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "UPDATE Usuario SET OTP = @OTP, OTPExpiry = @OTPExpiry WHERE IdUsuario = @IdUsuario",
                 CommandType.Text,
                 new SqlParameter("@OTP", otp),
@@ -150,7 +150,7 @@ namespace Services.DAL.Implementations.SQLServer
         {
             Usuario usuario = null;
 
-            using (SqlDataReader reader = SqlHelper.ExecuteReader(
+            using (SqlDataReader reader = SecuritySqlHelper.ExecuteReader(
                 "SELECT IdUsuario, UserName, Password, Estado, OTP, OTPExpiry FROM Usuario WHERE UserName = @UserName",
                 CommandType.Text,
                 new SqlParameter("@UserName", username)))
@@ -174,7 +174,7 @@ namespace Services.DAL.Implementations.SQLServer
 
         public void UpdatePassword(Guid idUsuario, string newPassword)
         {
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "UPDATE Usuario SET Password = @Password, OTP = NULL, OTPExpiry = NULL WHERE IdUsuario = @IdUsuario",
                 CommandType.Text,
                 new SqlParameter("@Password", newPassword),
@@ -189,7 +189,7 @@ namespace Services.DAL.Implementations.SQLServer
 
             string query = "SELECT IdUsuario, UserName, Estado FROM Usuario";
 
-            using (SqlDataReader reader = SqlHelper.ExecuteReader(query, CommandType.Text))
+            using (SqlDataReader reader = SecuritySqlHelper.ExecuteReader(query, CommandType.Text))
             {
                 while (reader.Read())
                 {
@@ -225,7 +225,7 @@ namespace Services.DAL.Implementations.SQLServer
 
             List<UsuarioFamiliaDTO> usuariosFamilias = new List<UsuarioFamiliaDTO>();
 
-            using (var reader = SqlHelper.ExecuteReader(query, CommandType.Text))
+            using (var reader = SecuritySqlHelper.ExecuteReader(query, CommandType.Text))
             {
                 while (reader.Read())
                 {
@@ -243,7 +243,7 @@ namespace Services.DAL.Implementations.SQLServer
 
         public void CreatePatente(Patente patente)
         {
-            SqlHelper.ExecuteNonQuery(
+            SecuritySqlHelper.ExecuteNonQuery(
                 "INSERT INTO Patente (IdPatente, Nombre, DataKey, TipoAcceso) VALUES (@IdPatente, @Nombre, @DataKey, @TipoAcceso)",
                 CommandType.Text,
                 new SqlParameter("@IdPatente", patente.Id),
@@ -255,7 +255,7 @@ namespace Services.DAL.Implementations.SQLServer
 
         public void RemoveUsuario(Guid id)
         {
-            using (var connection = new SqlConnection(SqlHelper.conString))
+            using (var connection = new SqlConnection(SecuritySqlHelper.conString))
             {
                 connection.Open();
 
@@ -264,20 +264,20 @@ namespace Services.DAL.Implementations.SQLServer
                     try
                     {
                         // Eliminar relaciones con familias o permisos asociados
-                        SqlHelper.ExecuteNonQuery(
+                        SecuritySqlHelper.ExecuteNonQuery(
                             "DELETE FROM Usuario_Familia WHERE IdUsuario = @IdUsuario",
                             CommandType.Text,
                             new SqlParameter("@IdUsuario", id)
                         );
 
-                        SqlHelper.ExecuteNonQuery(
+                        SecuritySqlHelper.ExecuteNonQuery(
                             "DELETE FROM Usuario_Patente WHERE IdUsuario = @IdUsuario",
                             CommandType.Text,
                             new SqlParameter("@IdUsuario", id)
                         );
 
                         // Eliminar el usuario
-                        SqlHelper.ExecuteNonQuery(
+                        SecuritySqlHelper.ExecuteNonQuery(
                             "DELETE FROM Usuario WHERE IdUsuario = @IdUsuario",
                             CommandType.Text,
                             new SqlParameter("@IdUsuario", id)
